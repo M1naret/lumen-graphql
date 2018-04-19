@@ -1,5 +1,5 @@
 {
-  "name": "M1naret/graphql-laravel",
+  "name": "m1naret/lumen-graphql",
   "description": "Lumen wrapper for PHP GraphQL",
   "keywords": [
     "framework",
