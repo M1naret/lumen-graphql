@@ -1,11 +1,5 @@
 <?php
 
-
-use example\Mutation\ExampleMutation;
-use example\Query\ExampleQuery;
-use example\Type\ExampleRelationType;
-use example\Type\ExampleType;
-
 return [
 
     // The prefix for routes
@@ -97,10 +91,10 @@ return [
     'schemas' => [
         'default' => [
             'query' => [
-                'example_query' => ExampleQuery::class,
+//                'example_query' => ExampleQuery::class,
             ],
             'mutation' => [
-                'example_mutation'  => ExampleMutation::class,
+//                'example_mutation'  => ExampleMutation::class,
             ],
             'middleware' => []
         ],
@@ -116,8 +110,8 @@ return [
     // ]
     //
     'types' => [
-        'example'           => ExampleType::class,
-        'relation_example'  => ExampleRelationType::class,
+//        'example'           => ExampleType::class,
+//        'relation_example'  => ExampleRelationType::class,
     ],
     
     // This callable will be passed the Error object for each errors GraphQL catch.
@@ -127,7 +121,10 @@ return [
     //     'message' => '',
     //     'locations' => []
     // ]
-    'error_formatter' => ['\M1naret\GraphQL\GraphQL', 'formatError'],
+    'error_formatter' => [
+        \M1naret\GraphQL\GraphQL::class,
+        'formatError'
+    ],
 
     // You can set the key, which will be used to retrieve the dynamic variables
     'params_key'    => 'params',

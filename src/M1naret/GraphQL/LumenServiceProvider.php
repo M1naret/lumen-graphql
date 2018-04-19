@@ -10,6 +10,7 @@ use Illuminate\Config\Repository;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Lumen\Routing\Router;
+use \M1naret\GraphQL\Support\Facades\GraphQL as GraphQLFacade;
 
 class LumenServiceProvider extends ServiceProvider
 {
@@ -179,7 +180,7 @@ class LumenServiceProvider extends ServiceProvider
         static $registered = false;
         // Check if facades are activated
         if (!$registered && Facade::getFacadeApplication() === $this->app) {
-            class_alias(GraphQL::class, 'GraphQL');
+            class_alias(GraphQLFacade::class, 'GraphQL');
             $registered = true;
         }
 

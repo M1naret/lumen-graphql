@@ -7,10 +7,14 @@ class GraphQLController extends Controller {
 
     public function query(Request $request, $schema = null)
     {
+        /** @var array $routeInfo */
+        $routeInfo = $request->route();
+
+        $routeParameters = array_get($routeInfo, 2, []);
         // If there are multiple route params we can expect that there
         // will be a schema name that has to be built
-        if (\count($request->route()->parameters) > 1) {
-            $schema = implode('/', $request->route()->parameters);
+        if (\is_array($routeParameters) && \count($routeParameters) > 1) {
+            $schema = implode('/', $routeParameters);
         }
 
         if( ! $schema)
