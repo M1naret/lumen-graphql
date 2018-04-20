@@ -55,12 +55,7 @@ class Query extends Field
      */
     private function setDefaultArgs(): void
     {
-        $this->defaultArgs = [
-            'return' => [
-                'name' => 'return',
-                'type' => Type::string(),
-            ],
-        ];
+        $this->defaultArgs = [];
     }
 
     /**
