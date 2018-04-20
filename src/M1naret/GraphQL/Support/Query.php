@@ -55,7 +55,18 @@ class Query extends Field
      */
     private function setDefaultArgs(): void
     {
-        $this->defaultArgs = [];
+        if ($this->type() instanceof PaginationType){
+            $this->defaultArgs = [
+                'page'  => [
+                    'name' => 'page',
+                    'type' => Type::int(),
+                ],
+                'per_page'  => [
+                    'name' => 'per_page',
+                    'type' => Type::int(),
+                ],
+            ];
+        }
     }
 
     /**
