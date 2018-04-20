@@ -3,8 +3,16 @@
 use Illuminate\Http\Request;
 use Laravel\Lumen\Routing\Controller;
 
-class GraphQLController extends Controller {
-
+class GraphQLController extends Controller
+{
+    /**
+     * @param Request $request
+     * @param null $schema
+     * @return array|mixed
+     *
+     * @throws \RuntimeException
+     * @throws Exception\SchemaNotFound
+     */
     public function query(Request $request, $schema = null)
     {
         /** @var array $routeInfo */
@@ -17,35 +25,34 @@ class GraphQLController extends Controller {
             $schema = implode('/', $routeParameters);
         }
 
-        if( ! $schema)
-        {
+        if (!$schema) {
             $schema = config('graphql.default_schema');
         }
 
         // If a singular query was not found, it means the queries are in batch
-        $isBatch = ! $request->has('query');
+        $isBatch = !$request->has('query');
         $batch = $isBatch ? $request->all() : [$request->all()];
 
         $completedQueries = [];
-        $paramsKey = config('graphql.params_key');
+        $paramsKey = config('graphql.params_key', 'variables');
 
         $opts = [
-            'context'   => $this->queryContext(),
-            'schema'    => $schema,
+            'context' => $this->queryContext(),
+            'schema' => $schema,
         ];
 
+        /** @var GraphQL $graphql */
+        $graphql = app('graphql');
         // Complete each query in order
-        foreach($batch as $batchItem)
-        {
+        foreach ($batch as $batchItem) {
             $query = $batchItem['query'];
             $params = array_get($batchItem, $paramsKey);
 
-            if(\is_string($params))
-            {
+            if (\is_string($params)) {
                 $params = json_decode($params, true);
             }
 
-            $completedQueries[] = app('graphql')->query($query, $params, array_merge($opts, [
+            $completedQueries[] = $graphql->query($query, $params, array_merge($opts, [
                 'operationName' => array_get($batchItem, 'operationName'),
             ]));
         }
