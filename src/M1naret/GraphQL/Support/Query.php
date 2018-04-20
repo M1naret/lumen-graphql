@@ -3,43 +3,33 @@
 namespace M1naret\GraphQL\Support;
 
 use GraphQL\Type\Definition\Type;
-use Illuminate\Http\Request;
 
 class Query extends Field
 {
+
+    /**
+     * @var array
+     */
     private $customArgs = [];
 
+    /**
+     * @var array
+     */
     private $defaultArgs = [];
 
     /** @var array */
     private $variables = [];
 
+    /**
+     * Query constructor.
+     *
+     * @param array $attributes
+     */
     public function __construct($attributes = [])
     {
         parent::__construct($attributes);
 
-        $this->parseVariablesFromRequest();
-
         $this->setDefaultArgs();
-    }
-
-    protected function parseVariablesFromRequest(): void
-    {
-        /** @var Request $request */
-        $request = app('request');
-
-        \is_array($variables = $request->get('variables', [])) && $this->setVariables($variables);
-
-        if ($perPage = (int)$this->getVariable('per_page')) {
-            $request->merge([
-                'per_page' => $perPage,
-            ]);
-        }
-        if ($page = (int)$this->getVariable('page')) {
-            $request->merge([
-                'page' => $page,
-            ]);
-        }
     }
 
     /**
