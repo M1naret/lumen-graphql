@@ -3,10 +3,10 @@
 namespace M1naret\GraphQL\Support;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Fluent;
 use M1naret\GraphQL\Error\AuthorizationError;
 use M1naret\GraphQL\Error\ValidationError;
-use Illuminate\Support\Facades\Validator;
 
 class Field extends Fluent
 {
@@ -87,6 +87,10 @@ class Field extends Fluent
 
             $args = array_get($arguments, 1, []);
 
+            if (method_exists($this, 'prepareRequest')) {
+                $args = $this->prepareRequest($args);
+            }
+
             // Validate mutation arguments
             if (method_exists($this, 'getRules')) {
                 $rules = $this->getRules($args);
@@ -102,6 +106,8 @@ class Field extends Fluent
             // на этом моменте уже все variables перезаписаны константами
 
             $this->parsePaginationFromArgs($args);
+
+            $arguments[1] = $args;
 
             // Replace the context argument with 'selects and relations'
             // $arguments[1] is direct args given with the query
@@ -180,7 +186,7 @@ class Field extends Fluent
      * @param  string $key
      *
      * @return bool
-*/
+     */
     public function __isset($key)
     {
         $attributes = $this->getAttributes();
