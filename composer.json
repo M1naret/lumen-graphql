@@ -1,6 +1,7 @@
 {
   "name": "m1naret/lumen-graphql",
   "description": "Lumen wrapper for PHP GraphQL",
+  "type": "library",
   "keywords": [
     "framework",
     "lumen",
@@ -8,7 +9,6 @@
   ],
   "version": "0.0.1-alpha",
   "license": "MIT",
-  "type": "project",
   "require": {
     "php": "^7.0",
     "laravel/lumen-framework": "~5.5",
