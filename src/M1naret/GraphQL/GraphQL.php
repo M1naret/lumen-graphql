@@ -2,21 +2,35 @@
 
 use GraphQL\Error\Error;
 use GraphQL\GraphQL as GraphQLBase;
-use GraphQL\Type\Schema;
+use GraphQL\Language\SourceLocation;
 use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Schema;
+use Laravel\Lumen\Application;
 use M1naret\GraphQL\Error\ValidationError;
 use M1naret\GraphQL\Exception\SchemaNotFound;
 use M1naret\GraphQL\Support\PaginationType;
 
 class GraphQL
 {
-
+    /**
+     * @var Application
+     */
     protected $app;
 
+    /**
+     * @var array
+     */
     protected $schemas = [];
+
     protected $types = [];
+
     protected $typesInstances = [];
 
+    /**
+     * GraphQL constructor.
+     *
+     * @param $app
+     */
     public function __construct($app)
     {
         $this->app = $app;
@@ -41,13 +55,13 @@ class GraphQL
             $this->type($name);
         }
 
-        $schemaName = is_string($schema) ? $schema : config('graphql.default_schema', 'default');
+        $schemaName = \is_string($schema) ? $schema : config('graphql.default_schema', 'default');
 
         if (!\is_array($schema) && !isset($this->schemas[$schemaName])) {
             throw new SchemaNotFound('Type ' . $schemaName . ' not found.');
         }
 
-        $schema = is_array($schema) ? $schema : $this->schemas[$schemaName];
+        $schema = \is_array($schema) ? $schema : $this->schemas[$schemaName];
 
         $schemaQuery = array_get($schema, 'query', []);
         $schemaMutation = array_get($schema, 'mutation', []);
@@ -102,7 +116,7 @@ class GraphQL
      * @throws \RuntimeException
      * @throws SchemaNotFound
      */
-    public function query($query, $params = [], $opts = [])
+    public function query($query, array $params = [], array $opts = []): array
     {
         $executionResult = $this->queryAndReturnResult($query, $params, $opts);
 
@@ -130,7 +144,7 @@ class GraphQL
      * @throws \RuntimeException
      * @throws SchemaNotFound
      */
-    public function queryAndReturnResult($query, $params = [], $opts = [])
+    public function queryAndReturnResult($query, array $params = [], array $opts = [])
     {
         $context = array_get($opts, 'context');
         $schemaName = array_get($opts, 'schema');
@@ -142,17 +156,17 @@ class GraphQL
         return $result;
     }
 
-    public function addTypes($types)
+    public function addTypes(array $types): void
     {
         foreach ($types as $name => $type) {
             $this->addType($type, is_numeric($name) ? null : $name);
         }
     }
 
-    public function addType($class, $name = null)
+    public function addType($class, $name = null): void
     {
         if (!$name) {
-            $type = is_object($class) ? $class : app($class);
+            $type = \is_object($class) ? $class : app($class);
             $name = $type->name;
         }
 
@@ -177,7 +191,7 @@ class GraphQL
         }
 
         $type = $this->types[$name];
-        if (!is_object($type)) {
+        if (!\is_object($type)) {
             $type = app($type);
         }
 
@@ -187,7 +201,7 @@ class GraphQL
         return $instance;
     }
 
-    public function objectType($type, $opts = [])
+    public function objectType($type, array $opts = [])
     {
         // If it's already an ObjectType, just update properties and return it.
         // If it's an array, assume it's an array of fields and build ObjectType
@@ -203,7 +217,7 @@ class GraphQL
                     $objectType->config[$key] = $value;
                 }
             }
-        } elseif (is_array($type)) {
+        } elseif (\is_array($type)) {
             $objectType = $this->buildObjectTypeFromFields($type, $opts);
         } else {
             $objectType = $this->buildObjectTypeFromClass($type, $opts);
@@ -212,9 +226,9 @@ class GraphQL
         return $objectType;
     }
 
-    protected function buildObjectTypeFromClass($type, $opts = [])
+    protected function buildObjectTypeFromClass($type, array $opts = [])
     {
-        if (!is_object($type)) {
+        if (!\is_object($type)) {
             $type = $this->app->make($type);
         }
 
@@ -225,11 +239,11 @@ class GraphQL
         return $type->toType();
     }
 
-    protected function buildObjectTypeFromFields($fields, $opts = [])
+    protected function buildObjectTypeFromFields(array $fields, array $opts = []): ObjectType
     {
         $typeFields = [];
         foreach ($fields as $name => $field) {
-            if (is_string($field)) {
+            if (\is_string($field)) {
                 $field = $this->app->make($field);
                 $name = is_numeric($name) ? $field->name : $name;
                 $field->name = $name;
@@ -246,58 +260,57 @@ class GraphQL
         ], $opts));
     }
 
-    public function addSchema($name, $schema)
+    public function addSchema($name, $schema): void
     {
         $this->schemas[$name] = $schema;
     }
 
-    public function clearType($name)
+    public function clearType($name): void
     {
         if (isset($this->types[$name])) {
             unset($this->types[$name]);
         }
     }
 
-    public function clearSchema($name)
+    public function clearSchema($name): void
     {
         if (isset($this->schemas[$name])) {
             unset($this->schemas[$name]);
         }
     }
 
-    public function clearTypes()
+    public function clearTypes(): void
     {
         $this->types = [];
     }
 
-    public function clearSchemas()
+    public function clearSchemas(): void
     {
         $this->schemas = [];
     }
 
-    public function getTypes()
+    public function getTypes(): array
     {
         return $this->types;
     }
 
-    public function getSchemas()
+    public function getSchemas() : array
     {
         return $this->schemas;
     }
 
-    protected function clearTypeInstances()
+    protected function clearTypeInstances(): void
     {
         $this->typesInstances = [];
     }
 
-    protected function getTypeName($class, $name = null)
+    protected function getTypeName($class, $name = null): string
     {
         if ($name) {
             return $name;
         }
 
-        $type = is_object($class) ? $class : $this->app->make($class);
-        return $type->name;
+        return \is_object($class) ? $class : $this->app->make($class)->name;
     }
 
     public function paginate($typeName, $customName = null)
@@ -311,7 +324,7 @@ class GraphQL
         return $this->typesInstances[$name];
     }
 
-    public static function formatError(Error $e)
+    public static function formatError(Error $e): array
     {
         $error = [
             'message' => $e->getMessage()
@@ -319,8 +332,8 @@ class GraphQL
 
         $locations = $e->getLocations();
         if (!empty($locations)) {
-            $error['locations'] = array_map(function ($loc) {
-                return $loc->toArray();
+            $error['locations'] = array_map(function (SourceLocation $location) {
+                return $location->toArray();
             }, $locations);
         }
 

@@ -13,7 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class SelectFields {
+class SelectFields
+{
 
     /** @var array */
     private static $args = [];
@@ -24,7 +25,7 @@ class SelectFields {
     /** @var array */
     private static $privacyValidations = [];
 
-    const FOREIGN_KEY = 'foreignKey';
+    public const FOREIGN_KEY = 'foreignKey';
 
     /**
      * @param ResolveInfo $info
@@ -33,8 +34,7 @@ class SelectFields {
      */
     public function __construct(ResolveInfo $info, $parentType, array $args)
     {
-        if( ! is_null($info->fieldNodes[0]->selectionSet))
-        {
+        if (null !== $info->fieldNodes[0]->selectionSet) {
             self::$args = $args;
 
             $fields = self::getSelectableFieldsAndRelations($info->getFieldSelection(5), $parentType);
@@ -48,6 +48,11 @@ class SelectFields {
      * Retrieve the fields (top level) and relations that
      * will be selected with the query
      *
+     * @param array $requestedFields
+     * @param $parentType
+     * @param null $customQuery
+     * @param bool $topLevel
+     *
      * @return array | Closure - if first recursion, return an array,
      *      where the first key is 'select' array and second is 'with' array.
      *      On other recursions return a closure that will be used in with
@@ -57,8 +62,7 @@ class SelectFields {
         $select = [];
         $with = [];
 
-        if(is_a($parentType, ListOfType::class))
-        {
+        if (is_a($parentType, ListOfType::class)) {
             $parentType = $parentType->getWrappedType();
         }
         $parentTable = self::getTableNameFromParentType($parentType);
@@ -67,118 +71,96 @@ class SelectFields {
         self::handleFields($requestedFields, $parentType, $select, $with);
 
         // If a primary key is given, but not in the selects, add it
-        if( ! is_null($primaryKey))
-        {
+        if (null !== $primaryKey) {
             $primaryKey = $parentTable ? ($parentTable . '.' . $primaryKey) : $primaryKey;
 
-            if( ! in_array($primaryKey, $select))
-            {
+            if (!\in_array($primaryKey, $select, true)) {
                 $select[] = $primaryKey;
             }
         }
 
-        if($topLevel)
-        {
+        if ($topLevel) {
             return [$select, $with];
         }
-        else
-        {
-            return function($query) use ($with, $select, $customQuery)
-            {
-                if($customQuery)
-                {
-                    $query = $customQuery(self::$args, $query);
-                }
 
-                $query->select($select);
-                $query->with($with);
-            };
-        }
+        return function ($query) use ($with, $select, $customQuery) {
+            if ($customQuery && \is_callable($customQuery)) {
+                $query = $customQuery(self::$args, $query);
+            }
+
+            $query->select($select);
+            $query->with($with);
+        };
     }
 
     /**
      * Get the selects and withs from the given fields
      * and recurse if necessary
+     * @param array $requestedFields
+     * @param $parentType
+     * @param array $select
+     * @param array $with
      */
-    protected static function handleFields(array $requestedFields, $parentType, array &$select, array &$with)
+    protected static function handleFields(array $requestedFields, $parentType, array &$select, array &$with): void
     {
         $parentTable = self::getTableNameFromParentType($parentType);
 
-        foreach($requestedFields as $key => $field)
-        {
+        foreach ($requestedFields as $key => $field) {
             // Ignore __typename, as it's a special case
-            if($key === '__typename')
-            {
+            if ($key === '__typename') {
                 continue;
             }
 
             // Always select foreign key
-            if ($field === self::FOREIGN_KEY)
-            {
+            if ($field === self::FOREIGN_KEY) {
                 self::addFieldToSelect($key, $select, $parentTable, false);
                 continue;
             }
 
             // If field doesn't exist on definition we don't select it
             try {
-                if ($parentType instanceof \GraphQL\Type\Definition\ListOfType) {
+                if ($parentType instanceof ListOfType) {
                     continue;
-                } else {
-                    $fieldObject = $parentType->getField($key);
                 }
+                $fieldObject = $parentType->getField($key);
             } catch (InvariantViolation $e) {
                 continue;
             }
 
             // First check if the field is even accessible
             $canSelect = self::validateField($fieldObject);
-            if($canSelect === true)
-            {
+            if ($canSelect === true) {
                 // Add a query, if it exists
                 $customQuery = array_get($fieldObject->config, 'query');
 
                 // Pagination
-                if(is_a($parentType, PaginationType::class))
-                {
+                if (is_a($parentType, PaginationType::class)) {
                     self::handleFields($field, $fieldObject->config['type']->getWrappedType(), $select, $with);
-                }
-                // With
-                elseif(is_array($field))
-                {
-                    if (isset($parentType->config['model']))
-                    {
+                } // With
+                elseif (\is_array($field)) {
+                    if (isset($parentType->config['model'])) {
                         // Get the next parent type, so that 'with' queries could be made
                         // Both keys for the relation are required (e.g 'id' <-> 'user_id')
-                        $relation = call_user_func([app($parentType->config['model']), $key]);
+                        $relation = \call_user_func([app($parentType->config['model']), $key]);
                         // Add the foreign key here, if it's a 'belongsTo'/'belongsToMany' relation
-                        if(method_exists($relation, 'getForeignKey'))
-                        {
+                        if (method_exists($relation, 'getForeignKey')) {
                             $foreignKey = $relation->getForeignKey();
-                        }
-                        else if(method_exists($relation, 'getQualifiedForeignPivotKeyName'))
-                        {
+                        } else if (method_exists($relation, 'getQualifiedForeignPivotKeyName')) {
                             $foreignKey = $relation->getQualifiedForeignPivotKeyName();
-                        }
-                        else
-                        {
+                        } else {
                             $foreignKey = $relation->getQualifiedForeignKeyName();
                         }
 
                         $foreignKey = $parentTable ? ($parentTable . '.' . $foreignKey) : $foreignKey;
 
-                        if(is_a($relation, BelongsTo::class) || is_a($relation, MorphTo::class))
-                        {
-                            if( ! in_array($foreignKey, $select))
-                            {
+                        if (is_a($relation, BelongsTo::class) || is_a($relation, MorphTo::class)) {
+                            if (!\in_array($foreignKey, $select, true)) {
                                 $select[] = $foreignKey;
                             }
-                        }
-                        // If 'HasMany', then add it in the 'with'
-                        elseif(is_a($relation, HasMany::class) || is_a($relation, MorphMany::class) || is_a($relation, HasOne::class))
-                        {
+                        } // If 'HasMany', then add it in the 'with'
+                        elseif (is_a($relation, HasMany::class) || is_a($relation, MorphMany::class) || is_a($relation, HasOne::class)) {
                             $foreignKey = explode('.', $foreignKey)[2];
-                            if( ! array_key_exists($foreignKey, $field))
-                            {
+                            if (!array_key_exists($foreignKey, $field)) {
                                 $field[$foreignKey] = self::FOREIGN_KEY;
                             }
                         }
@@ -189,35 +171,24 @@ class SelectFields {
                         self::addAlwaysFields($fieldObject, $field, $parentTable, true);
 
                         $with[$key] = self::getSelectableFieldsAndRelations($field, $newParentType, $customQuery, false);
-                    }
-                    else
-                    {
+                    } else {
                         self::handleFields($field, $fieldObject->config['type'], $select, $with);
                     }
-                }
-                // Select
-                else
-                {
-                    $key = isset($fieldObject->config['alias'])
-                        ? $fieldObject->config['alias']
-                        : $key;
+                } // Select
+                else {
+                    $key = $fieldObject->config['alias'] ?? $key;
 
                     self::addFieldToSelect($key, $select, $parentTable, false);
 
                     self::addAlwaysFields($fieldObject, $select, $parentTable);
                 }
-            }
-            // If privacy does not allow the field, return it as null
-            elseif($canSelect === null)
-            {
-                $fieldObject->resolveFn = function()
-                {
+            } // If privacy does not allow the field, return it as null
+            elseif ($canSelect === null) {
+                $fieldObject->resolveFn = function () {
                     return null;
                 };
-            }
-            // If allowed field, but not selectable
-            elseif($canSelect === false)
-            {
+            } // If allowed field, but not selectable
+            elseif ($canSelect === false) {
                 self::addAlwaysFields($fieldObject, $select, $parentTable);
             }
         }
@@ -225,8 +196,7 @@ class SelectFields {
         // If parent type is an interface we select all fields
         // because we don't know which other fields are required
         // from types which implement this interface
-        if(is_a($parentType, InterfaceType::class))
-        {
+        if (is_a($parentType, InterfaceType::class)) {
             $select = ['*'];
         }
     }
@@ -234,43 +204,35 @@ class SelectFields {
     /**
      * Check the privacy status, if it's given
      *
+     * @param $fieldObject
      * @return boolean | null - true, if selectable; false, if not selectable, but allowed;
      *                          null, if not allowed
      */
-    protected static function validateField($fieldObject)
+    protected static function validateField($fieldObject): ?bool
     {
         $selectable = true;
 
         // If not a selectable field
-        if(isset($fieldObject->config['selectable']) && $fieldObject->config['selectable'] === false)
-        {
+        if (isset($fieldObject->config['selectable']) && $fieldObject->config['selectable'] === false) {
             $selectable = false;
         }
 
-        if(isset($fieldObject->config['privacy']))
-        {
+        if (isset($fieldObject->config['privacy'])) {
             $privacyClass = $fieldObject->config['privacy'];
 
             // If privacy given as a closure
-            if(is_callable($privacyClass) && call_user_func($privacyClass, self::$args) === false)
-            {
+            if (\is_callable($privacyClass) && $privacyClass(self::$args) === false) {
                 $selectable = null;
-            }
-            // If Privacy class given
-            elseif(is_string($privacyClass))
-            {
-                if(array_has(self::$privacyValidations, $privacyClass))
-                {
+            } // If Privacy class given
+            elseif (\is_string($privacyClass)) {
+                if (array_has(self::$privacyValidations, $privacyClass)) {
                     $validated = self::$privacyValidations[$privacyClass];
-                }
-                else
-                {
-                    $validated = call_user_func([app($privacyClass), 'fire'], self::$args);
+                } else {
+                    $validated = \call_user_func([app($privacyClass), 'fire'], self::$args);
                     self::$privacyValidations[$privacyClass] = $validated;
                 }
 
-                if( ! $validated)
-                {
+                if (!$validated) {
                     $selectable = null;
                 }
             }
@@ -281,37 +243,34 @@ class SelectFields {
 
     /**
      * Add selects that are given by the 'always' attribute
+     * @param $fieldObject
+     * @param array $select
+     * @param $parentTable
+     * @param bool $forRelation
      */
-    protected static function addAlwaysFields($fieldObject, array &$select, $parentTable, $forRelation = false)
+    protected static function addAlwaysFields($fieldObject, array &$select, $parentTable, $forRelation = false): void
     {
-        if(isset($fieldObject->config['always']))
-        {
+        if (isset($fieldObject->config['always'])) {
             $always = $fieldObject->config['always'];
 
-            if(is_string($always))
-            {
+            if (\is_string($always)) {
                 $always = explode(',', $always);
             }
 
             // Get as 'field' => true
-            foreach($always as $field)
-            {
+            foreach ($always as $field) {
                 self::addFieldToSelect($field, $select, $parentTable, $forRelation);
             }
         }
     }
 
-    protected static function addFieldToSelect($field, &$select, $parentTable, $forRelation)
+    protected static function addFieldToSelect($field, &$select, $parentTable, $forRelation): void
     {
-        if($forRelation && ! array_key_exists($field, $select))
-        {
+        if ($forRelation && !array_key_exists($field, $select)) {
             $select[$field] = true;
-        }
-        elseif( ! $forRelation && ! in_array($field, $select))
-        {
+        } elseif (!$forRelation && !\in_array($field, $select, true)) {
             $field = $parentTable ? ($parentTable . '.' . $field) : $field;
-            if ( ! in_array($field, $select))
-            {
+            if (!\in_array($field, $select, true)) {
                 $select[] = $field;
             }
         }

@@ -1,4 +1,4 @@
-<?php /** @noinspection ReturnTypeCanBeDeclaredInspection */
+<?php 
 
 namespace M1naret\GraphQL\Support;
 
@@ -10,6 +10,70 @@ use M1naret\GraphQL\Error\ValidationError;
 
 class Field extends Fluent
 {
+    protected $variables = [];
+
+    private function getArgs() : array
+    {
+        $args = $this->args();
+
+        if ($this->type() instanceof PaginationType) {
+            $args = array_merge([
+                'page'     => [
+                    'name' => 'page',
+                    'type' => \GraphQL\Type\Definition\Type::int(),
+                ],
+                'per_page' => [
+                    'name' => 'per_page',
+                    'type' => \GraphQL\Type\Definition\Type::int(),
+                ],
+            ], $args);
+        }
+
+        return $args;
+    }
+
+    public function args() : array
+    {
+        return [];
+    }
+
+    /**
+     * @param array $variables
+     */
+    public function setVariables(array $variables) : void
+    {
+        $this->variables = $variables;
+    }
+
+    /**
+     * @return array|mixed
+     */
+    public function getVariables()
+    {
+        return $this->variables;
+    }
+
+    /**
+     * @param      $key
+     * @param null $default
+     *
+     * @return mixed
+     */
+    public function getVariable($key, $default = null)
+    {
+        return array_get($this->variables, $key, $default);
+    }
+
+    /**
+     * @param $key
+     *
+     * @return bool
+     */
+    public function hasVariable($key) : bool
+    {
+        return array_has($this->variables, $key);
+    }
+
     /**
      * Override this in your queries or mutations
      * to provide custom authorization
@@ -28,14 +92,12 @@ class Field extends Fluent
         return [];
     }
 
+    /**
+     * @return mixed
+     */
     public function type()
     {
         return null;
-    }
-
-    public function args()
-    {
-        return [];
     }
 
     protected function rules(array $args = []) : array
@@ -49,7 +111,7 @@ class Field extends Fluent
 
         $rules = \call_user_func_array([$this, 'rules'], $arguments);
         $argsRules = [];
-        foreach ($this->args() as $name => $arg) {
+        foreach ($this->getArgs() as $name => $arg) {
             if (isset($arg['rules'])) {
                 if (\is_callable($arg['rules'])) {
                     $argsRules[$name] = \call_user_func_array($arg['rules'], $arguments);
@@ -135,12 +197,12 @@ class Field extends Fluent
      *
      * @return array
      */
-    public function getAttributes()
+    public function getAttributes() : array
     {
         $attributes = $this->attributes();
 
         $attributes = array_merge($this->attributes, [
-            'args' => $this->args(),
+            'args' => $this->getArgs(),
         ], $attributes);
 
         $type = $this->type();
@@ -161,7 +223,7 @@ class Field extends Fluent
      *
      * @return array
      */
-    public function toArray()
+    public function toArray() : array
     {
         return $this->getAttributes();
     }

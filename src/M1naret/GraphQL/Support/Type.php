@@ -132,16 +132,17 @@ class Type extends Fluent {
     public function __get($key)
     {
         $attributes = $this->getAttributes();
-        return isset($attributes[$key]) ? $attributes[$key]:null;
+        return $attributes[$key] ?? null;
     }
 
     /**
      * Dynamically check if an attribute is set.
      *
      * @param  string  $key
-     * @return void
+     *
+     * @return bool
      */
-    public function __isset($key)
+    public function __isset($key) : bool
     {
         $attributes = $this->getAttributes();
         return isset($attributes[$key]);
