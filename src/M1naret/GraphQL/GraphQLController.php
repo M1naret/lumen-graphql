@@ -51,7 +51,9 @@ class GraphQLController extends Controller
             if (\is_string($params)) {
                 $params = json_decode($params, true);
             }
-
+            $params = array_filter((array)$params, function ($item){
+                return null !== $item;
+            });
             $completedQueries[] = $graphql->query($query, $params, array_merge($opts, [
                 'operationName' => array_get($batchItem, 'operationName'),
             ]));

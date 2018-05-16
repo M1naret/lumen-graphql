@@ -7,7 +7,7 @@
     "lumen",
     "graphql"
   ],
-  "version": "1.0.0",
+  "version": "@dev",
   "license": "MIT",
   "require": {
     "php": "^7.1",
