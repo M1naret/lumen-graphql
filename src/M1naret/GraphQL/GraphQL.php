@@ -1,4 +1,6 @@
-<?php namespace M1naret\GraphQL;
+<?php
+
+namespace M1naret\GraphQL;
 
 use GraphQL\Error\Error;
 use GraphQL\GraphQL as GraphQLBase;
@@ -107,15 +109,15 @@ class GraphQL
 
     /**
      * @param $query
-     * @param array $params
-     * @param array $opts - additional options, like 'schema', 'context' or 'operationName'
+     * @param null|array $params
+     * @param array|null $opts - additional options, like 'schema', 'context' or 'operationName'
      *
      * @return array
      *
      * @throws \RuntimeException
      * @throws SchemaNotFound
      */
-    public function query($query, array $params = [], array $opts = []): array
+    public function query($query, $params = [], $opts = []): array
     {
         $executionResult = $this->queryAndReturnResult($query, $params, $opts);
 
@@ -135,24 +137,22 @@ class GraphQL
 
     /**
      * @param $query
-     * @param array $params
-     * @param array $opts
+     * @param null|array $params
+     * @param null|array $opts
      *
      * @return \GraphQL\Executor\ExecutionResult|\GraphQL\Executor\Promise\Promise
      *
      * @throws \RuntimeException
      * @throws SchemaNotFound
      */
-    public function queryAndReturnResult($query, array $params = [], array $opts = [])
+    public function queryAndReturnResult($query, $params = [], $opts = [])
     {
         $context = array_get($opts, 'context');
         $schemaName = array_get($opts, 'schema');
         $operationName = array_get($opts, 'operationName');
-
         $schema = $this->schema($schemaName);
 
-        $result = GraphQLBase::executeQuery($schema, $query, null, $context, $params, $operationName);
-        return $result;
+        return GraphQLBase::executeQuery($schema, $query, null, $context, $params, $operationName);
     }
 
     public function addTypes(array $types)
@@ -200,7 +200,13 @@ class GraphQL
         return $instance;
     }
 
-    public function objectType($type, array $opts = [])
+    /**
+     * @param       $type
+     * @param null|array $opts
+     *
+     * @return ObjectType|null
+     */
+    public function objectType($type, $opts = [])
     {
         // If it's already an ObjectType, just update properties and return it.
         // If it's an array, assume it's an array of fields and build ObjectType
@@ -225,7 +231,13 @@ class GraphQL
         return $objectType;
     }
 
-    protected function buildObjectTypeFromClass($type, array $opts = [])
+    /**
+     * @param       $type
+     * @param null|array $opts
+     *
+     * @return mixed
+     */
+    protected function buildObjectTypeFromClass($type, $opts = [])
     {
         if (!\is_object($type)) {
             $type = $this->app->make($type);
@@ -238,7 +250,13 @@ class GraphQL
         return $type->toType();
     }
 
-    protected function buildObjectTypeFromFields(array $fields, array $opts = []): ObjectType
+    /**
+     * @param array $fields
+     * @param array|null $opts
+     *
+     * @return ObjectType
+     */
+    protected function buildObjectTypeFromFields(array $fields, $opts = []): ObjectType
     {
         $typeFields = [];
         foreach ($fields as $name => $field) {

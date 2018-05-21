@@ -9,8 +9,7 @@ use GraphQL\Validator\Rules\QueryDepth;
 use Illuminate\Config\Repository;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Lumen\Routing\Router;
-use \M1naret\GraphQL\Support\Facades\GraphQL as GraphQLFacade;
+use M1naret\GraphQL\Support\Facades\GraphQL as GraphQLFacade;
 
 class LumenServiceProvider extends ServiceProvider
 {
@@ -54,9 +53,7 @@ class LumenServiceProvider extends ServiceProvider
     private function bootPublishes()
     {
         $configPath = __DIR__ . '/../../config';
-        $viewsPath = __DIR__.'/../../resources/views';
         $this->mergeConfigFrom($configPath . '/graphql.php', 'graphql');
-        $this->loadViewsFrom($viewsPath, 'graphql');
     }
 
     /**
@@ -66,19 +63,15 @@ class LumenServiceProvider extends ServiceProvider
      */
     private function bootRouter()
     {
-        /** @var Repository $config */
-        $config = $this->app['config'];
-
-        if ($config->get('graphql.routes')) {
-            $router = $this->getRouter();
-            include __DIR__.'/routes.php';
-        }
+        $router = $this->getRouter();
+        include __DIR__ . '/routes.php';
     }
 
     /**
      * Add schemas from config
      *
      * @param GraphQL $graphql
+     *
      * @return void
      */
     private function addSchemas(GraphQL $graphql)
@@ -98,6 +91,7 @@ class LumenServiceProvider extends ServiceProvider
      * Add types from config
      *
      * @param GraphQL $graphql
+     *
      * @return void
      */
     private function addTypes(GraphQL $graphql)
@@ -156,16 +150,17 @@ class LumenServiceProvider extends ServiceProvider
      * Bootstrap events
      *
      * @param GraphQL $graphql
+     *
      * @return void
      */
     private function registerEventListeners(GraphQL $graphql)
     {
         // Update the schema route pattern when schema is added
-        $this->app['events']->listen(Events\SchemaAdded::class, function () use ($graphql) {
+        $this->app['events']->listen(Events\SchemaAdded::class, function() use ($graphql) {
             $router = $this->getRouter();
             if (method_exists($router, 'pattern')) {
                 $schemaNames = array_keys($graphql->getSchemas());
-                $router->pattern('graphql_schema', '('.implode('|', $schemaNames).')');
+                $router->pattern('graphql_schema', '(' . implode('|', $schemaNames) . ')');
             }
         });
     }
@@ -184,8 +179,7 @@ class LumenServiceProvider extends ServiceProvider
             $registered = true;
         }
 
-        $this->app->singleton('graphql', function ($app) {
-
+        $this->app->singleton('graphql', function($app) {
             $graphql = new GraphQL($app);
 
             $this->addTypes($graphql);

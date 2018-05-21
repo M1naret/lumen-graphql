@@ -1,16 +1,18 @@
-<?php namespace M1naret\GraphQL;
+<?php
+
+namespace M1naret\GraphQL;
 
 use Illuminate\Http\Request;
 
 class GraphQLController extends BaseController
 {
-    public function query(Request $request, $schema = null)
+    public function query(Request $request)
     {
+        $schema = $this->getSchema($request);
+
         $isBatch = !$request->has('query');
         $inputs = $request->all();
-        if (null === $schema) {
-            $schema = config('graphql.schema');
-        }
+
         if (!$isBatch) {
             $data = $this->executeQuery($schema, $inputs);
         } else {
@@ -22,13 +24,23 @@ class GraphQLController extends BaseController
         $headers = config('graphql.headers', []);
         $options = config('graphql.json_encoding_options', 0);
         $errors = !$isBatch ? array_get($data, 'errors', []) : [];
-        $authorized = array_reduce($errors, function ($authorized, $error) {
+        $authorized = array_reduce($errors, function($authorized, $error) {
             return !(!$authorized || array_get($error, 'message') === 'Unauthorized');
         }, true);
         if (!$authorized) {
             return response()->json($data, 403, $headers, $options);
         }
         return response()->json($data, 200, $headers, $options);
+    }
+
+    private function getSchema(Request $request)
+    {
+        $schema = str_replace(config('graphql.prefix', ''), '', $request->path());
+        $schema = trim($schema, '/');
+        if (!$schema) {
+            $schema = config('graphql.default_schema');
+        }
+        return $schema;
     }
 
     protected function executeQuery($schema, $input)
@@ -42,9 +54,9 @@ class GraphQLController extends BaseController
         $operationName = array_get($input, 'operationName');
         $context = $this->queryContext($query, $variables, $schema);
         return app('graphql')->query($query, $variables, [
-            'context' => $context,
-            'schema' => $schema,
-            'operationName' => $operationName
+            'context'       => $context,
+            'schema'        => $schema,
+            'operationName' => $operationName,
         ]);
     }
 
