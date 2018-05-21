@@ -5,7 +5,6 @@ use GraphQL\GraphQL as GraphQLBase;
 use GraphQL\Language\SourceLocation;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Schema;
-use Laravel\Lumen\Application;
 use M1naret\GraphQL\Error\ValidationError;
 use M1naret\GraphQL\Exception\SchemaNotFound;
 use M1naret\GraphQL\Support\PaginationType;
@@ -13,7 +12,7 @@ use M1naret\GraphQL\Support\PaginationType;
 class GraphQL
 {
     /**
-     * @var Application
+     * @var \Illuminate\Foundation\Application|\Laravel\Lumen\Application
      */
     protected $app;
 
@@ -156,14 +155,14 @@ class GraphQL
         return $result;
     }
 
-    public function addTypes(array $types): void
+    public function addTypes(array $types)
     {
         foreach ($types as $name => $type) {
             $this->addType($type, is_numeric($name) ? null : $name);
         }
     }
 
-    public function addType($class, $name = null): void
+    public function addType($class, $name = null)
     {
         if (!$name) {
             $type = \is_object($class) ? $class : app($class);
@@ -260,31 +259,31 @@ class GraphQL
         ], $opts));
     }
 
-    public function addSchema($name, $schema): void
+    public function addSchema($name, $schema)
     {
         $this->schemas[$name] = $schema;
     }
 
-    public function clearType($name): void
+    public function clearType($name)
     {
         if (isset($this->types[$name])) {
             unset($this->types[$name]);
         }
     }
 
-    public function clearSchema($name): void
+    public function clearSchema($name)
     {
         if (isset($this->schemas[$name])) {
             unset($this->schemas[$name]);
         }
     }
 
-    public function clearTypes(): void
+    public function clearTypes()
     {
         $this->types = [];
     }
 
-    public function clearSchemas(): void
+    public function clearSchemas()
     {
         $this->schemas = [];
     }
@@ -294,12 +293,12 @@ class GraphQL
         return $this->types;
     }
 
-    public function getSchemas() : array
+    public function getSchemas(): array
     {
         return $this->schemas;
     }
 
-    protected function clearTypeInstances(): void
+    protected function clearTypeInstances()
     {
         $this->typesInstances = [];
     }

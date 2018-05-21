@@ -2,13 +2,14 @@
 
 namespace M1naret\GraphQL\Support;
 
-abstract class Privacy {
+abstract class Privacy
+{
 
     public function fire()
     {
-        return $this->validate(func_get_args()[0]);
+        return $this->validate(\func_get_args()[0]);
     }
 
-    public abstract function validate(array $args);
+    abstract public function validate(array $args);
 
 }

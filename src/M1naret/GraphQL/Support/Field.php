@@ -40,7 +40,7 @@ class Field extends Fluent
     /**
      * @param array $variables
      */
-    public function setVariables(array $variables) : void
+    public function setVariables(array $variables)
     {
         $this->variables = $variables;
     }
@@ -184,7 +184,7 @@ class Field extends Fluent
         };
     }
 
-    protected function parsePaginationFromArgs(array $args = []) : void
+    protected function parsePaginationFromArgs(array $args = [])
     {
         /** @var Request $request */
         $request = app('request');

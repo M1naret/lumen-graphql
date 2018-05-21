@@ -2,13 +2,16 @@
 
 $schemaParameterPattern = '/\{\s*graphql\_schema\s*\?\s*\}/';
 
-/** @var \Laravel\Lumen\Routing\Router $router */
+/** @var \Laravel\Lumen\Routing\Router|Illuminate\Routing\Router $router */
 
 $router->group([
-    'prefix'     => config('graphql.prefix'),
-    'domain'     => config('graphql.domain'),
+    'prefix' => config('graphql.prefix'),
+    'domain' => config('graphql.domain'),
     'middleware' => config('graphql.middleware', []),
-], function(\Laravel\Lumen\Routing\Router $router) use ($schemaParameterPattern) {
+], function ($router) use ($schemaParameterPattern) {
+
+    /** @var \Laravel\Lumen\Routing\Router|Illuminate\Routing\Router $router */
+
     //Get routes from config
     $routes = config('graphql.routes');
     $queryRoute = null;
@@ -39,13 +42,13 @@ $router->group([
             $defaultMiddleware = config('graphql.schemas.' . config('graphql.default_schema') . '.middleware', []);
 
             $router->post(preg_replace($schemaParameterPattern, '', $queryRoute), [
-                'uses'       => $queryController,
+                'uses' => $queryController,
                 'middleware' => $defaultMiddleware,
             ]);
 
             foreach (config('graphql.schemas') as $name => $schema) {
                 $router->post($name, [
-                    'uses'       => $queryController,
+                    'uses' => $queryController,
                     'middleware' => array_get($schema, 'middleware', []),
                 ]);
             }
@@ -59,13 +62,13 @@ $router->group([
         if (preg_match($schemaParameterPattern, $mutationRoute)) {
             $defaultMiddleware = config('graphql.schemas.' . config('graphql.default_schema') . '.middleware', []);
             $router->post(preg_replace($schemaParameterPattern, '', $mutationRoute), [
-                'uses'       => $mutationController,
+                'uses' => $mutationController,
                 'middleware' => $defaultMiddleware,
             ]);
 
             foreach (config('graphql.schemas') as $name => $schema) {
                 $router->post($name, [
-                    'uses'       => $mutationController,
+                    'uses' => $mutationController,
                     'middleware' => array_get($schema, 'middleware', []),
                 ]);
             }

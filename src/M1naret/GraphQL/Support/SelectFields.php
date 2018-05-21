@@ -25,7 +25,7 @@ class SelectFields
     /** @var array */
     private static $privacyValidations = [];
 
-    public const FOREIGN_KEY = 'foreignKey';
+    const FOREIGN_KEY = 'foreignKey';
 
     /**
      * @param ResolveInfo $info
@@ -101,7 +101,7 @@ class SelectFields
      * @param array $select
      * @param array $with
      */
-    protected static function handleFields(array $requestedFields, $parentType, array &$select, array &$with): void
+    protected static function handleFields(array $requestedFields, $parentType, array &$select, array &$with)
     {
         $parentTable = self::getTableNameFromParentType($parentType);
 
@@ -208,7 +208,7 @@ class SelectFields
      * @return boolean | null - true, if selectable; false, if not selectable, but allowed;
      *                          null, if not allowed
      */
-    protected static function validateField($fieldObject): ?bool
+    protected static function validateField($fieldObject)
     {
         $selectable = true;
 
@@ -248,7 +248,7 @@ class SelectFields
      * @param $parentTable
      * @param bool $forRelation
      */
-    protected static function addAlwaysFields($fieldObject, array &$select, $parentTable, $forRelation = false): void
+    protected static function addAlwaysFields($fieldObject, array &$select, $parentTable, $forRelation = false)
     {
         if (isset($fieldObject->config['always'])) {
             $always = $fieldObject->config['always'];
@@ -264,7 +264,7 @@ class SelectFields
         }
     }
 
-    protected static function addFieldToSelect($field, &$select, $parentTable, $forRelation): void
+    protected static function addFieldToSelect($field, &$select, $parentTable, $forRelation)
     {
         if ($forRelation && !array_key_exists($field, $select)) {
             $select[$field] = true;

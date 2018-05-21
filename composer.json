@@ -10,9 +10,8 @@
   "version": "0.0.1",
   "license": "MIT",
   "require": {
-    "php": "^7.1",
-    "laravel/lumen-framework": "~5.5",
-    "illuminate/support": "~5.5",
+    "php": "^7.0",
+    "illuminate/support": "^5.4",
     "webonyx/graphql-php": "^0.11"
   },
   "require-dev": {

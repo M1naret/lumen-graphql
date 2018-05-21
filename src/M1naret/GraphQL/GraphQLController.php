@@ -1,68 +1,54 @@
 <?php namespace M1naret\GraphQL;
 
 use Illuminate\Http\Request;
-use Laravel\Lumen\Routing\Controller;
 
-class GraphQLController extends Controller
+class GraphQLController extends BaseController
 {
-    /**
-     * @param Request $request
-     * @param null $schema
-     * @return array|mixed
-     *
-     * @throws \RuntimeException
-     * @throws Exception\SchemaNotFound
-     */
     public function query(Request $request, $schema = null)
     {
-        /** @var array $routeInfo */
-        $routeInfo = $request->route();
-
-        $routeParameters = array_get($routeInfo, 2, []);
-        // If there are multiple route params we can expect that there
-        // will be a schema name that has to be built
-        if (\is_array($routeParameters) && \count($routeParameters)) {
-            $schema = implode('/', $routeParameters);
-        }
-
-        if (!$schema) {
-            $schema = config('graphql.default_schema');
-        }
-
-        // If a singular query was not found, it means the queries are in batch
         $isBatch = !$request->has('query');
-        $batch = $isBatch ? $request->all() : [$request->all()];
-
-        $completedQueries = [];
-        $paramsKey = config('graphql.params_key', 'variables');
-
-        $opts = [
-            'context' => $this->queryContext(),
-            'schema' => $schema,
-        ];
-
-        /** @var GraphQL $graphql */
-        $graphql = app('graphql');
-        // Complete each query in order
-        foreach ($batch as $batchItem) {
-            $query = $batchItem['query'];
-            $params = array_get($batchItem, $paramsKey);
-
-            if (\is_string($params)) {
-                $params = json_decode($params, true);
-            }
-            $params = array_filter((array)$params, function ($item){
-                return null !== $item;
-            });
-            $completedQueries[] = $graphql->query($query, $params, array_merge($opts, [
-                'operationName' => array_get($batchItem, 'operationName'),
-            ]));
+        $inputs = $request->all();
+        if (null === $schema) {
+            $schema = config('graphql.schema');
         }
-
-        return $isBatch ? $completedQueries : $completedQueries[0];
+        if (!$isBatch) {
+            $data = $this->executeQuery($schema, $inputs);
+        } else {
+            $data = [];
+            foreach ($inputs as $input) {
+                $data[] = $this->executeQuery($schema, $input);
+            }
+        }
+        $headers = config('graphql.headers', []);
+        $options = config('graphql.json_encoding_options', 0);
+        $errors = !$isBatch ? array_get($data, 'errors', []) : [];
+        $authorized = array_reduce($errors, function ($authorized, $error) {
+            return !(!$authorized || array_get($error, 'message') === 'Unauthorized');
+        }, true);
+        if (!$authorized) {
+            return response()->json($data, 403, $headers, $options);
+        }
+        return response()->json($data, 200, $headers, $options);
     }
 
-    protected function queryContext()
+    protected function executeQuery($schema, $input)
+    {
+        $variablesInputName = config('graphql.variables_input_name', 'variables');
+        $query = array_get($input, 'query');
+        $variables = array_get($input, $variablesInputName);
+        if (\is_string($variables)) {
+            $variables = json_decode($variables, true);
+        }
+        $operationName = array_get($input, 'operationName');
+        $context = $this->queryContext($query, $variables, $schema);
+        return app('graphql')->query($query, $variables, [
+            'context' => $context,
+            'schema' => $schema,
+            'operationName' => $operationName
+        ]);
+    }
+
+    protected function queryContext($query, $variables, $schema)
     {
         try {
             return app('auth')->user();
@@ -70,5 +56,4 @@ class GraphQLController extends Controller
             return null;
         }
     }
-
 }

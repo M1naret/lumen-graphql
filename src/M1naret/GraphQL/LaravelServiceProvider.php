@@ -9,10 +9,9 @@ use GraphQL\Validator\Rules\QueryDepth;
 use Illuminate\Config\Repository;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Lumen\Routing\Router;
 use \M1naret\GraphQL\Support\Facades\GraphQL as GraphQLFacade;
 
-class LumenServiceProvider extends ServiceProvider
+class LaravelServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap any application services.
