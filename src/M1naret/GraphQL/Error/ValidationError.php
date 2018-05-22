@@ -1,7 +1,5 @@
 <?php namespace M1naret\GraphQL\Error;
 
-use GraphQL\Error\Error;
-
 class ValidationError extends Error
 {
     protected $code = 422;

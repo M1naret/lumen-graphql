@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Fluent;
 use M1naret\GraphQL\Error\AuthorizationError;
 use M1naret\GraphQL\Error\ValidationError;
+use M1naret\GraphQL\Support\Throttle\Throttle;
 
 class Field extends Fluent
 {
@@ -33,6 +34,11 @@ class Field extends Fluent
     }
 
     public function args() : array
+    {
+        return [];
+    }
+
+    public function throttle() : array
     {
         return [];
     }
@@ -166,7 +172,6 @@ class Field extends Fluent
             }
 
             // на этом моменте уже все variables перезаписаны константами
-
             $this->parsePaginationFromArgs($args);
 
             $arguments[1] = $args;
@@ -179,6 +184,10 @@ class Field extends Fluent
                 $fields = new SelectFields($arguments[3], $this->type(), $arguments[1]);
                 $arguments[2] = $fields;
             }
+
+            /** @var Query|Mutation $query */
+            $query = $resolver[0];
+            !empty($query->throttle()) && app(Throttle::class)->check($query);
 
             return \call_user_func_array($resolver, $arguments);
         };

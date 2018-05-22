@@ -3,8 +3,8 @@
 namespace M1naret\GraphQL;
 
 use GraphQL\Error\Error;
+use \M1naret\GraphQL\Error\Error as GraphQLError;
 use GraphQL\GraphQL as GraphQLBase;
-use GraphQL\Language\SourceLocation;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Schema;
 use M1naret\GraphQL\Error\ValidationError;
@@ -13,6 +13,8 @@ use M1naret\GraphQL\Support\PaginationType;
 
 class GraphQL
 {
+    /** @noinspection PhpUndefinedClassInspection */
+    /** @noinspection PhpUndefinedNamespaceInspection */
     /**
      * @var \Illuminate\Foundation\Application|\Laravel\Lumen\Application
      */
@@ -76,7 +78,7 @@ class GraphQL
         if (\count($schemaTypes)) {
             foreach ($schemaTypes as $name => $type) {
                 $objectType = $this->objectType($type, is_numeric($name) ? [] : [
-                    'name' => $name
+                    'name' => $name,
                 ]);
                 $this->typesInstances[$name] = $objectType;
                 $types[] = $objectType;
@@ -88,27 +90,28 @@ class GraphQL
         }
 
         $query = $this->objectType($schemaQuery, [
-            'name' => 'Query'
+            'name' => 'Query',
         ]);
 
         $mutation = $this->objectType($schemaMutation, [
-            'name' => 'Mutation'
+            'name' => 'Mutation',
         ]);
 
         $subscription = $this->objectType($schemaSubscription, [
-            'name' => 'Subscription'
+            'name' => 'Subscription',
         ]);
 
         return new Schema([
-            'query' => $query,
-            'mutation' => !empty($schemaMutation) ? $mutation : null,
+            'query'        => $query,
+            'mutation'     => !empty($schemaMutation) ? $mutation : null,
             'subscription' => !empty($schemaSubscription) ? $subscription : null,
-            'types' => $types
+            'types'        => $types,
         ]);
-    }
+    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
     /**
-     * @param $query
+     * @param            $query
      * @param null|array $params
      * @param array|null $opts - additional options, like 'schema', 'context' or 'operationName'
      *
@@ -117,7 +120,7 @@ class GraphQL
      * @throws \RuntimeException
      * @throws SchemaNotFound
      */
-    public function query($query, $params = [], $opts = []): array
+    public function query($query, $params = [], $opts = []) : array
     {
         $executionResult = $this->queryAndReturnResult($query, $params, $opts);
 
@@ -135,8 +138,10 @@ class GraphQL
         return $data;
     }
 
+    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
     /**
-     * @param $query
+     * @param            $query
      * @param null|array $params
      * @param null|array $opts
      *
@@ -173,7 +178,7 @@ class GraphQL
     }
 
     /**
-     * @param $name
+     * @param      $name
      * @param bool $fresh
      *
      * @return mixed
@@ -198,10 +203,10 @@ class GraphQL
         $this->typesInstances[$name] = $instance;
 
         return $instance;
-    }
+    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
     /**
-     * @param       $type
+     * @param            $type
      * @param null|array $opts
      *
      * @return ObjectType|null
@@ -229,10 +234,10 @@ class GraphQL
         }
 
         return $objectType;
-    }
+    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
     /**
-     * @param       $type
+     * @param            $type
      * @param null|array $opts
      *
      * @return mixed
@@ -248,15 +253,15 @@ class GraphQL
         }
 
         return $type->toType();
-    }
+    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
     /**
-     * @param array $fields
+     * @param array      $fields
      * @param array|null $opts
      *
      * @return ObjectType
      */
-    protected function buildObjectTypeFromFields(array $fields, $opts = []): ObjectType
+    protected function buildObjectTypeFromFields(array $fields, $opts = []) : ObjectType
     {
         $typeFields = [];
         foreach ($fields as $name => $field) {
@@ -273,7 +278,7 @@ class GraphQL
         }
 
         return new ObjectType(array_merge([
-            'fields' => $typeFields
+            'fields' => $typeFields,
         ], $opts));
     }
 
@@ -306,12 +311,12 @@ class GraphQL
         $this->schemas = [];
     }
 
-    public function getTypes(): array
+    public function getTypes() : array
     {
         return $this->types;
     }
 
-    public function getSchemas(): array
+    public function getSchemas() : array
     {
         return $this->schemas;
     }
@@ -321,7 +326,7 @@ class GraphQL
         $this->typesInstances = [];
     }
 
-    protected function getTypeName($class, $name = null): string
+    protected function getTypeName($class, $name = null) : string
     {
         if ($name) {
             return $name;
@@ -341,22 +346,26 @@ class GraphQL
         return $this->typesInstances[$name];
     }
 
-    public static function formatError(Error $e): array
+    /**
+     * @param Error $e
+     *
+     * @return array
+     */
+    public static function formatError(Error $e) : array
     {
+        $previous = $e->getPrevious();
+
+        /** @var array $error */
         $error = [
-            'message' => $e->getMessage()
+            'code'    => $previous ? $previous->getCode() : $e->getCode(),
+            'message' => $e->getMessage(),
         ];
 
-        $locations = $e->getLocations();
-        if (!empty($locations)) {
-            $error['locations'] = array_map(function (SourceLocation $location) {
-                return $location->toArray();
-            }, $locations);
-        }
-
-        $previous = $e->getPrevious();
         if ($previous && $previous instanceof ValidationError) {
             $error['validation'] = $previous->getValidatorMessages();
+        }
+        if ($previous && $previous instanceof GraphQLError) {
+            $error['headers'] = $previous->getHeaders();
         }
 
         return $error;

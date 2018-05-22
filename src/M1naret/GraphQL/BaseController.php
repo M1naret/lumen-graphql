@@ -8,14 +8,17 @@
 
 namespace M1naret\GraphQL;
 
-if (class_exists('Illuminate\Routing\Controller')) {
-    class BaseController extends \Illuminate\Routing\Controller
+use Illuminate\Routing\Controller as LaravelController;
+use \Laravel\Lumen\Routing\Controller as LumenController;
+
+if (class_exists(LaravelController::class)) {
+    class BaseController extends LaravelController
     {
 
     }
 
-} elseif (class_exists('Laravel\Lumen\Routing\Controller')) {
-    class BaseController extends \Laravel\Lumen\Routing\Controller
+} elseif (class_exists(LumenController::class)) {
+    class BaseController extends LumenController
     {
 
     }

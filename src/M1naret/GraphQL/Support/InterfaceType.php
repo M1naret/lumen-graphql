@@ -27,7 +27,7 @@ class InterfaceType extends Type
      */
     public function getAttributes(): array
     {
-        $attributes = parent::getAttributes();;
+        $attributes = parent::getAttributes();
 
         ($resolver = $this->getTypeResolver()) && $attributes['resolveType'] = $resolver;
 

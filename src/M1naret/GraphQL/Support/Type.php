@@ -7,73 +7,66 @@ use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
 use Illuminate\Support\Fluent;
 
-class Type extends Fluent {
-    
+class Type extends Fluent
+{
+
     protected static $instances = [];
-    
+
     protected $inputObject = false;
     protected $enumObject = false;
 
-    public function attributes()
+    public function attributes(): array
     {
         return [];
     }
-    
-    public function fields()
+
+    public function fields() : array
     {
         return [];
     }
-    
-    public function interfaces()
+
+    public function interfaces(): array
     {
         return [];
     }
-    
+
     protected function getFieldResolver($name, $field)
     {
-        if(isset($field['resolve']))
-        {
+        if (isset($field['resolve'])) {
             return $field['resolve'];
         }
 
-        $resolveMethod = 'resolve'.studly_case($name).'Field';
+        $resolveMethod = 'resolve' . studly_case($name) . 'Field';
 
-        if(method_exists($this, $resolveMethod))
-        {
+        if (method_exists($this, $resolveMethod)) {
             $resolver = array($this, $resolveMethod);
-            return function() use ($resolver)
-            {
-                $args = func_get_args();
-                return call_user_func_array($resolver, $args);
+            return function () use ($resolver) {
+                $args = \func_get_args();
+                return \call_user_func_array($resolver, $args);
             };
         }
-        
+
         return null;
     }
-    
-    public function getFields()
+
+    public function getFields(): array
     {
         $fields = $this->fields();
         $allFields = [];
-        foreach($fields as $name => $field)
-        {
-            if(is_string($field))
-            {
+        foreach ($fields as $name => $field) {
+            if (\is_string($field)) {
                 $field = app($field);
                 $field->name = $name;
                 $allFields[$name] = $field->toArray();
-            }
-            else
-            {
+            } else {
                 $resolver = $this->getFieldResolver($name, $field);
-                if($resolver)
-                {
+                if ($resolver) {
                     $field['resolve'] = $resolver;
                 }
                 $allFields[$name] = $field;
             }
         }
-        
+
         return $allFields;
     }
 
@@ -82,22 +75,21 @@ class Type extends Fluent {
      *
      * @return array
      */
-    public function getAttributes()
+    public function getAttributes() : array
     {
         $attributes = $this->attributes();
         $interfaces = $this->interfaces();
-        
+
         $attributes = array_merge($this->attributes, [
             'fields' => function () {
                 return $this->getFields();
             }
         ], $attributes);
-        
-        if(sizeof($interfaces))
-        {
+
+        if (\count($interfaces)) {
             $attributes['interfaces'] = $interfaces;
         }
-        
+
         return $attributes;
     }
 
@@ -106,15 +98,14 @@ class Type extends Fluent {
      *
      * @return array
      */
-    public function toArray()
+    public function toArray() : array
     {
         return $this->getAttributes();
     }
-    
+
     public function toType()
     {
-        if($this->inputObject)
-        {
+        if ($this->inputObject) {
             return new InputObjectType($this->toArray());
         }
         if ($this->enumObject) {
@@ -126,7 +117,7 @@ class Type extends Fluent {
     /**
      * Dynamically retrieve the value of an attribute.
      *
-     * @param  string  $key
+     * @param  string $key
      * @return mixed
      */
     public function __get($key)
@@ -138,14 +129,14 @@ class Type extends Fluent {
     /**
      * Dynamically check if an attribute is set.
      *
-     * @param  string  $key
+     * @param  string $key
      *
      * @return bool
      */
-    public function __isset($key) : bool
+    public function __isset($key): bool
     {
         $attributes = $this->getAttributes();
         return isset($attributes[$key]);
     }
-    
+
 }

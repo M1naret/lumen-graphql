@@ -2,11 +2,20 @@
 
 namespace M1naret\GraphQL;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GraphQLController extends BaseController
 {
-    public function query(Request $request)
+    /**
+     * @param Request $request
+     *
+     * @return \Illuminate\Http\JsonResponse
+     *
+     * @throws \RuntimeException
+     * @throws Exception\SchemaNotFound
+     */
+    public function query(Request $request) : JsonResponse
     {
         $schema = $this->getSchema($request);
 
@@ -21,12 +30,19 @@ class GraphQLController extends BaseController
                 $data[] = $this->executeQuery($schema, $input);
             }
         }
+
         $headers = config('graphql.headers', []);
         $options = config('graphql.json_encoding_options', 0);
+
         $errors = !$isBatch ? array_get($data, 'errors', []) : [];
+        foreach ($errors as $error){
+            $headers += array_get($error, 'headers');
+        }
+
         $authorized = array_reduce($errors, function($authorized, $error) {
             return !(!$authorized || array_get($error, 'message') === 'Unauthorized');
         }, true);
+
         if (!$authorized) {
             return response()->json($data, 403, $headers, $options);
         }
@@ -43,9 +59,17 @@ class GraphQLController extends BaseController
         return $schema;
     }
 
-    protected function executeQuery($schema, $input)
+    /**
+     * @param $schema
+     * @param $input
+     * @return array
+     *
+     * @throws \RuntimeException
+     * @throws Exception\SchemaNotFound
+     */
+    protected function executeQuery($schema, $input) : array
     {
-        $variablesInputName = config('graphql.variables_input_name', 'variables');
+        $variablesInputName = config('graphql.variables_key', 'variables');
         $query = array_get($input, 'query');
         $variables = array_get($input, $variablesInputName);
         if (\is_string($variables)) {
@@ -53,7 +77,10 @@ class GraphQLController extends BaseController
         }
         $operationName = array_get($input, 'operationName');
         $context = $this->queryContext($query, $variables, $schema);
-        return app('graphql')->query($query, $variables, [
+
+        /** @var GraphQL $graphql */
+        $graphql = app('graphql');
+        return $graphql->query($query, $variables, [
             'context'       => $context,
             'schema'        => $schema,
             'operationName' => $operationName,

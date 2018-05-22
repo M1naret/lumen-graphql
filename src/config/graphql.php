@@ -103,6 +103,6 @@ return [
     ],
 
     // You can set the key, which will be used to retrieve the dynamic variables
-    'params_key'    => 'params',
+    'variables_key'    => 'variables',
     
 ];
