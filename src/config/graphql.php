@@ -5,30 +5,6 @@ return [
     // The prefix for routes
     'prefix' => 'graphql',
 
-    /*
-     * The domain for routes
-     */
-    'domain' => null,
-
-    // The routes to make GraphQL request. Either a string that will apply
-    // to both query and mutation or an array containing the key 'query' and/or
-    // 'mutation' with the according Route
-    //
-    // Example:
-    //
-    // Same route for both query and mutation
-    //
-    // 'routes' => 'path/to/query/{graphql_schema?}',
-    //
-    // or define each route
-    //
-    // 'routes' => [
-    //     'query' => 'query/{graphql_schema?}',
-    //     'mutation' => 'mutation/{graphql_schema?}',
-    // ]
-    //
-    'routes'      => null,
-
     // The controller to use in GraphQL request. Either a string that will apply
     // to both query and mutation or an array containing the key 'query' and/or
     // 'mutation' with the according Controller and method
