@@ -98,8 +98,8 @@ return [
     //     'locations' => []
     // ]
     'error_formatter' => [
-        \M1naret\GraphQL\GraphQL::class,
-        'formatError'
+        \M1naret\GraphQL\Error\ErrorFormatter::class,
+        'format',
     ],
 
     // You can set the key, which will be used to retrieve the dynamic variables

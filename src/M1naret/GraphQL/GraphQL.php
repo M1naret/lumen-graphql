@@ -2,12 +2,9 @@
 
 namespace M1naret\GraphQL;
 
-use GraphQL\Error\Error;
-use \M1naret\GraphQL\Error\Error as GraphQLError;
 use GraphQL\GraphQL as GraphQLBase;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Schema;
-use M1naret\GraphQL\Error\ValidationError;
 use M1naret\GraphQL\Exception\SchemaNotFound;
 use M1naret\GraphQL\Support\PaginationType;
 
@@ -39,7 +36,84 @@ class GraphQL
         $this->app = $app;
     }
 
+        /**
+     * Check if the schema expects a nest URI name and return the formatted version
+     * Eg. 'user/me'
+     * will open the query path /graphql/user/me
+     *
+     * @param $name
+     * @param $schemaParameterPattern
+     * @param $queryRoute
+     *
+     * @return mixed
+     */
+    public static function routeNameTransformer($name, $schemaParameterPattern, $queryRoute)
+    {
+        $multiLevelPath = explode('/', $name);
+        $routeName = null;
+
+        if (\count($multiLevelPath) > 1) {
+            foreach ($multiLevelPath as $multiName) {
+                $routeName = !$routeName ? null : $routeName . '/';
+                $routeName .= preg_replace($schemaParameterPattern, '{' . $multiName . '}', $queryRoute);
+            }
+        }
+
+        return $routeName ?: preg_replace($schemaParameterPattern, '{' . $name . '}', $queryRoute);
+    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+
     /**
+     * @param            $query
+     * @param null|array $params
+     * @param array|null $opts - additional options, like 'schema', 'context' or 'operationName'
+     *
+     * @return array
+     *
+     * @throws \RuntimeException
+     * @throws SchemaNotFound
+     */
+    public function query($query, $params = [], $opts = []): array
+    {
+        $executionResult = $this->queryAndReturnResult($query, $params, $opts);
+
+        $data = [
+            'data' => $executionResult->data,
+        ];
+
+        // Add errors
+        if (!empty($executionResult->errors)) {
+            $errorFormatter = config('graphql.error_formatter', ['\M1naret\GraphQL', 'formatError']);
+
+            $data['errors'] = array_map($errorFormatter, $executionResult->errors);
+        }
+
+        return $data;
+    }
+
+    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    /**
+     * @param            $query
+     * @param null|array $params
+     * @param null|array $opts
+     *
+     * @return \GraphQL\Executor\ExecutionResult|\GraphQL\Executor\Promise\Promise
+     *
+     * @throws \RuntimeException
+     * @throws SchemaNotFound
+     */
+    public function queryAndReturnResult($query, $params = [], $opts = [])
+    {
+        $context = array_get($opts, 'context');
+        $schemaName = array_get($opts, 'schema');
+        $operationName = array_get($opts, 'operationName');
+        $schema = $this->schema($schemaName);
+
+        return GraphQLBase::executeQuery($schema, $query, null, $context, $params, $operationName);
+    }
+
+/**
      * @param null $schema
      *
      * @return array|Schema|mixed|null|string
@@ -102,82 +176,14 @@ class GraphQL
         ]);
 
         return new Schema([
-            'query'        => $query,
-            'mutation'     => !empty($schemaMutation) ? $mutation : null,
+            'query' => $query,
+            'mutation' => !empty($schemaMutation) ? $mutation : null,
             'subscription' => !empty($schemaSubscription) ? $subscription : null,
-            'types'        => $types,
+            'types' => $types,
         ]);
-    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
-    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
-
-    /**
-     * @param            $query
-     * @param null|array $params
-     * @param array|null $opts - additional options, like 'schema', 'context' or 'operationName'
-     *
-     * @return array
-     *
-     * @throws \RuntimeException
-     * @throws SchemaNotFound
-     */
-    public function query($query, $params = [], $opts = []) : array
-    {
-        $executionResult = $this->queryAndReturnResult($query, $params, $opts);
-
-        $data = [
-            'data' => $executionResult->data,
-        ];
-
-        // Add errors
-        if (!empty($executionResult->errors)) {
-            $errorFormatter = config('graphql.error_formatter', ['\M1naret\GraphQL', 'formatError']);
-
-            $data['errors'] = array_map($errorFormatter, $executionResult->errors);
-        }
-
-        return $data;
     }
 
-    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
-    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
-    /**
-     * @param            $query
-     * @param null|array $params
-     * @param null|array $opts
-     *
-     * @return \GraphQL\Executor\ExecutionResult|\GraphQL\Executor\Promise\Promise
-     *
-     * @throws \RuntimeException
-     * @throws SchemaNotFound
-     */
-    public function queryAndReturnResult($query, $params = [], $opts = [])
-    {
-        $context = array_get($opts, 'context');
-        $schemaName = array_get($opts, 'schema');
-        $operationName = array_get($opts, 'operationName');
-        $schema = $this->schema($schemaName);
-
-        return GraphQLBase::executeQuery($schema, $query, null, $context, $params, $operationName);
-    }
-
-    public function addTypes(array $types)
-    {
-        foreach ($types as $name => $type) {
-            $this->addType($type, is_numeric($name) ? null : $name);
-        }
-    }
-
-    public function addType($class, $name = null)
-    {
-        if (!$name) {
-            $type = \is_object($class) ? $class : app($class);
-            $name = $type->name;
-        }
-
-        $this->types[$name] = $class;
-    }
-
-    /**
+/**
      * @param      $name
      * @param bool $fresh
      *
@@ -203,7 +209,7 @@ class GraphQL
         $this->typesInstances[$name] = $instance;
 
         return $instance;
-    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    }
 
     /**
      * @param            $type
@@ -236,6 +242,33 @@ class GraphQL
         return $objectType;
     }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
+        /**
+     * @param array $fields
+     * @param array|null $opts
+     *
+     * @return ObjectType
+     */
+    protected function buildObjectTypeFromFields(array $fields, $opts = []): ObjectType
+    {
+        $typeFields = [];
+        foreach ($fields as $name => $field) {
+            if (\is_string($field)) {
+                $field = $this->app->make($field);
+                $name = is_numeric($name) ? $field->name : $name;
+                $field->name = $name;
+                $field = $field->toArray();
+            } else {
+                $name = is_numeric($name) ? $field['name'] : $name;
+                $field['name'] = $name;
+            }
+            $typeFields[$name] = $field;
+        }
+
+        return new ObjectType(array_merge([
+            'fields' => $typeFields,
+        ], $opts));
+    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+
     /**
      * @param            $type
      * @param null|array $opts
@@ -255,31 +288,21 @@ class GraphQL
         return $type->toType();
     }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
-    /**
-     * @param array      $fields
-     * @param array|null $opts
-     *
-     * @return ObjectType
-     */
-    protected function buildObjectTypeFromFields(array $fields, $opts = []) : ObjectType
+    public function addTypes(array $types)
     {
-        $typeFields = [];
-        foreach ($fields as $name => $field) {
-            if (\is_string($field)) {
-                $field = $this->app->make($field);
-                $name = is_numeric($name) ? $field->name : $name;
-                $field->name = $name;
-                $field = $field->toArray();
-            } else {
-                $name = is_numeric($name) ? $field['name'] : $name;
-                $field['name'] = $name;
-            }
-            $typeFields[$name] = $field;
+        foreach ($types as $name => $type) {
+            $this->addType($type, is_numeric($name) ? null : $name);
+        }
+    }
+
+    public function addType($class, $name = null)
+    {
+        if (!$name) {
+            $type = \is_object($class) ? $class : app($class);
+            $name = $type->name;
         }
 
-        return new ObjectType(array_merge([
-            'fields' => $typeFields,
-        ], $opts));
+        $this->types[$name] = $class;
     }
 
     public function addSchema($name, $schema)
@@ -311,28 +334,14 @@ class GraphQL
         $this->schemas = [];
     }
 
-    public function getTypes() : array
+    public function getTypes(): array
     {
         return $this->types;
     }
 
-    public function getSchemas() : array
+    public function getSchemas(): array
     {
         return $this->schemas;
-    }
-
-    protected function clearTypeInstances()
-    {
-        $this->typesInstances = [];
-    }
-
-    protected function getTypeName($class, $name = null) : string
-    {
-        if ($name) {
-            return $name;
-        }
-
-        return \is_object($class) ? $class : $this->app->make($class)->name;
     }
 
     public function paginate($typeName, $customName = null)
@@ -346,54 +355,17 @@ class GraphQL
         return $this->typesInstances[$name];
     }
 
-    /**
-     * @param Error $e
-     *
-     * @return array
-     */
-    public static function formatError(Error $e) : array
+    protected function clearTypeInstances()
     {
-        $previous = $e->getPrevious();
-
-        /** @var array $error */
-        $error = [
-            'code'    => $previous ? $previous->getCode() : $e->getCode(),
-            'message' => $e->getMessage(),
-        ];
-
-        if ($previous && $previous instanceof ValidationError) {
-            $error['validation'] = $previous->getValidatorMessages();
-        }
-        if ($previous && $previous instanceof GraphQLError) {
-            $error['headers'] = $previous->getHeaders();
-        }
-
-        return $error;
+        $this->typesInstances = [];
     }
 
-    /**
-     * Check if the schema expects a nest URI name and return the formatted version
-     * Eg. 'user/me'
-     * will open the query path /graphql/user/me
-     *
-     * @param $name
-     * @param $schemaParameterPattern
-     * @param $queryRoute
-     *
-     * @return mixed
-     */
-    public static function routeNameTransformer($name, $schemaParameterPattern, $queryRoute)
+    protected function getTypeName($class, $name = null): string
     {
-        $multiLevelPath = explode('/', $name);
-        $routeName = null;
-
-        if (\count($multiLevelPath) > 1) {
-            foreach ($multiLevelPath as $multiName) {
-                $routeName = !$routeName ? null : $routeName . '/';
-                $routeName .= preg_replace($schemaParameterPattern, '{' . $multiName . '}', $queryRoute);
-            }
+        if ($name) {
+            return $name;
         }
 
-        return $routeName ?: preg_replace($schemaParameterPattern, '{' . $name . '}', $queryRoute);
+        return \is_object($class) ? $class : $this->app->make($class)->name;
     }
 }

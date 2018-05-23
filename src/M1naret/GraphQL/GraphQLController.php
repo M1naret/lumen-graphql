@@ -36,7 +36,7 @@ class GraphQLController extends BaseController
 
         $errors = !$isBatch ? array_get($data, 'errors', []) : [];
         foreach ($errors as $error){
-            $headers += array_get($error, 'headers');
+            $headers += array_get($error, 'headers', []);
         }
 
         $authorized = array_reduce($errors, function($authorized, $error) {
