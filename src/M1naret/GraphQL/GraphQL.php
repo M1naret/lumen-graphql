@@ -73,7 +73,43 @@ class GraphQL
      * @throws \RuntimeException
      * @throws SchemaNotFound
      */
-    public function query($query, $params = [], $opts = []): array
+    public function query($query, $params = [], $opts = []) : array
+    {
+        /** @var string|array|null $operationName */
+        $operation = array_get($opts, 'operation');
+
+        $responseData = [
+            'data'   => [],
+            'errors' => [],
+        ];
+
+        if (!$operation || \is_string($operation)) {
+            $opts['operationName'] = $operation;
+            $responseData = $this->executeQuery($query, $params, $opts);
+        } else {
+            $results = $errors = [];
+            foreach ((array)$operation as $item) {
+                $opts['operationName'] = $item;
+                $result = $this->executeQuery($query, $params, $opts);
+                $results[] = $result['data'];
+                $errors[] = $result['errors'];
+            }
+            $responseData['data'] = array_merge(...$results);
+            $responseData['errors'] = array_merge(...$errors);
+        }
+
+        return $responseData;
+    }
+
+    /**
+     * @param $query
+     * @param $params
+     * @param $opts
+     *
+     * @return array
+     * @throws SchemaNotFound
+     */
+    private function executeQuery($query, $params, $opts) : array
     {
         $executionResult = $this->queryAndReturnResult($query, $params, $opts);
 
