@@ -75,7 +75,7 @@ class GraphQLController extends BaseController
         if (\is_string($variables)) {
             $variables = json_decode($variables, true);
         }
-        $operationName = array_get($input, 'operationName');
+        $operation = array_get($input, 'operation');
         $context = $this->queryContext($query, $variables, $schema);
 
         /** @var GraphQL $graphql */
@@ -83,7 +83,7 @@ class GraphQLController extends BaseController
         return $graphql->query($query, $variables, [
             'context'       => $context,
             'schema'        => $schema,
-            'operationName' => $operationName,
+            'operation' => $operation,
         ]);
     }
 
