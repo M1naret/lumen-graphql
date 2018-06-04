@@ -36,7 +36,7 @@ class GraphQL
         $this->app = $app;
     }
 
-        /**
+    /**
      * Check if the schema expects a nest URI name and return the formatted version
      * Eg. 'user/me'
      * will open the query path /graphql/user/me
@@ -73,7 +73,43 @@ class GraphQL
      * @throws \RuntimeException
      * @throws SchemaNotFound
      */
-    public function query($query, $params = [], $opts = []): array
+    public function query($query, $params = [], $opts = []) : array
+    {
+        /** @var string|array|null $operationName */
+        $operation = array_get($opts, 'operation');
+
+        $responseData = [
+            'data'   => [],
+            'errors' => [],
+        ];
+
+        if (!$operation || \is_string($operation)) {
+            $opts['operationName'] = $operation;
+            $responseData = $this->executeQuery($query, $params, $opts);
+        } else {
+            $results = $errors = [];
+            foreach ((array)$operation as $item) {
+                $opts['operationName'] = $item;
+                $result = $this->executeQuery($query, $params, $opts);
+                $results[] = $result['data'];
+                $errors[] = $result['errors'];
+            }
+            $responseData['data'] = array_merge(...$results);
+            $responseData['errors'] = array_merge(...$errors);
+        }
+
+        return $responseData;
+    }
+
+    /**
+     * @param $query
+     * @param $params
+     * @param $opts
+     *
+     * @return array
+     * @throws SchemaNotFound
+     */
+    private function executeQuery($query, $params, $opts) : array
     {
         $executionResult = $this->queryAndReturnResult($query, $params, $opts);
 
@@ -113,7 +149,7 @@ class GraphQL
         return GraphQLBase::executeQuery($schema, $query, null, $context, $params, $operationName);
     }
 
-/**
+    /**
      * @param null $schema
      *
      * @return array|Schema|mixed|null|string
@@ -151,9 +187,7 @@ class GraphQL
         $types = [];
         if (\count($schemaTypes)) {
             foreach ($schemaTypes as $name => $type) {
-                $objectType = $this->objectType($type, is_numeric($name) ? [] : [
-                    'name' => $name,
-                ]);
+                $objectType = $this->objectType($name, $type);
                 $this->typesInstances[$name] = $objectType;
                 $types[] = $objectType;
             }
@@ -163,27 +197,21 @@ class GraphQL
             }
         }
 
-        $query = $this->objectType($schemaQuery, [
-            'name' => 'Query',
-        ]);
+        $query = $this->objectType('Query', $schemaQuery);
 
-        $mutation = $this->objectType($schemaMutation, [
-            'name' => 'Mutation',
-        ]);
+        $mutation = $this->objectType('Mutation', $schemaMutation);
 
-        $subscription = $this->objectType($schemaSubscription, [
-            'name' => 'Subscription',
-        ]);
+        $subscription = $this->objectType('Subscription', $schemaSubscription);
 
         return new Schema([
-            'query' => $query,
-            'mutation' => !empty($schemaMutation) ? $mutation : null,
+            'query'        => $query,
+            'mutation'     => !empty($schemaMutation) ? $mutation : null,
             'subscription' => !empty($schemaSubscription) ? $subscription : null,
-            'types' => $types,
+            'types'        => $types,
         ]);
     }
 
-/**
+    /**
      * @param      $name
      * @param bool $fresh
      *
@@ -212,13 +240,15 @@ class GraphQL
     }
 
     /**
-     * @param            $type
-     * @param null|array $opts
+     * @param string        $name
+     * @param               $type
+     * @param null|array    $opts
      *
      * @return ObjectType|null
      */
-    public function objectType($type, $opts = [])
+    public function objectType(string $name, $type, $opts = [])
     {
+        $opts['name'] = $name;
         // If it's already an ObjectType, just update properties and return it.
         // If it's an array, assume it's an array of fields and build ObjectType
         // from it. Otherwise, build it from a string or an instance.
@@ -242,13 +272,13 @@ class GraphQL
         return $objectType;
     }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
-        /**
-     * @param array $fields
+    /**
+     * @param array      $fields
      * @param array|null $opts
      *
      * @return ObjectType
      */
-    protected function buildObjectTypeFromFields(array $fields, $opts = []): ObjectType
+    protected function buildObjectTypeFromFields(array $fields, $opts = []) : ObjectType
     {
         $typeFields = [];
         foreach ($fields as $name => $field) {
@@ -267,7 +297,7 @@ class GraphQL
         return new ObjectType(array_merge([
             'fields' => $typeFields,
         ], $opts));
-    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    }
 
     /**
      * @param            $type
@@ -286,7 +316,9 @@ class GraphQL
         }
 
         return $type->toType();
-    }/** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
+    }
+
+    /** @noinspection ArrayTypeOfParameterByDefaultValueInspection */
 
     public function addTypes(array $types)
     {
@@ -334,12 +366,12 @@ class GraphQL
         $this->schemas = [];
     }
 
-    public function getTypes(): array
+    public function getTypes() : array
     {
         return $this->types;
     }
 
-    public function getSchemas(): array
+    public function getSchemas() : array
     {
         return $this->schemas;
     }
@@ -360,7 +392,7 @@ class GraphQL
         $this->typesInstances = [];
     }
 
-    protected function getTypeName($class, $name = null): string
+    protected function getTypeName($class, $name = null) : string
     {
         if ($name) {
             return $name;

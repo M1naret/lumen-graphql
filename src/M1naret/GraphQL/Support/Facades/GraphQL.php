@@ -8,6 +8,7 @@ use M1naret\GraphQL\Support\PaginationType;
  * Class GraphQL
  * @package M1naret\GraphQL\Support\Facades
  *
+ * @method ObjectType objectType(string $name, $type, $opts = [])
  * @method ObjectType type(string $typeName, bool $fresh = false)
  * @method PaginationType paginate(string $typeName, string $customName = null)
  */
