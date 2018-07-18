@@ -5,7 +5,6 @@ namespace M1naret\GraphQL\Support;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
-use Illuminate\Support\Fluent;
 
 class Type extends Fluent
 {

@@ -4,7 +4,6 @@ namespace M1naret\GraphQL\Support;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Fluent;
 use M1naret\GraphQL\Error\AuthorizationError;
 use M1naret\GraphQL\Error\ValidationError;
 use M1naret\GraphQL\Support\Throttle\Throttle;
@@ -18,16 +17,7 @@ class Field extends Fluent
         $args = $this->args();
 
         if ($this->type() instanceof PaginationType) {
-            $args = array_merge([
-                'page'     => [
-                    'name' => 'page',
-                    'type' => \GraphQL\Type\Definition\Type::int(),
-                ],
-                'per_page' => [
-                    'name' => 'per_page',
-                    'type' => \GraphQL\Type\Definition\Type::int(),
-                ],
-            ], $args);
+            $args = array_merge($this->getArgsForPagination(), $args);
         }
 
         return $args;
