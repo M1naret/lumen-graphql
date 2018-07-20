@@ -22,6 +22,7 @@ class Fluent extends BaseFluent
         return [
             'page'     => [
                 'type' => \GraphQL\Type\Definition\Type::int(),
+                'defaultValue' => 1,
             ],
             'per_page' => [
                 'type' => \GraphQL\Type\Definition\Type::int(),
