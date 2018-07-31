@@ -22,12 +22,12 @@ class ErrorFormatter
     /**
      * @var BaseError
      */
-    static private $error;
+    static protected $error;
 
     /**
      * @var BaseError|GraphQLError|ValidationError
      */
-    static private $previous;
+    static protected $previous;
 
     /**
      * @param BaseError $error
@@ -57,7 +57,7 @@ class ErrorFormatter
     /**
      * @return int
      */
-    private static function getCode() : int
+    protected static function getCode() : int
     {
         return (int)(self::$previous ? self::$previous->getCode() : self::$error->getCode() ?: 0);
     }
@@ -65,7 +65,7 @@ class ErrorFormatter
     /**
      * @return string
      */
-    private static function getMessage(): string
+    protected static function getMessage(): string
     {
         return self::$previous ? self::$previous->getMessage() : self::$error->getMessage() ?: '';
     }
